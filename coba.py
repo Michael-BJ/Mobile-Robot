@@ -1,7 +1,5 @@
 from machine import Pin, PWM, Timer, UART
 import utime, time
-import select
-import sys
 
 machine.freq(200000000)
 
@@ -10,9 +8,6 @@ machine.freq(200000000)
 encoder_channels = [(8, 9), (27, 26), (10, 11), (21, 20)]  # Each tuple contains (channel_A, channel_B) pins for an encoder
 # Define driver pins for motors
 motor_pins = [(6, 7), (19, 18), (14, 15), (17, 16)]  # Each tuple contains (RPWM, LPWM) pins for a motor
-
-poll_obj = select.poll()
-poll_obj.register(sys.stdin, select.POLLIN)
 
 # Set up the GPIO pins as outputs for motors
 motors = []
@@ -85,41 +80,6 @@ def drive_motor(motor_index, R, L):
     lpwm.duty_u16(L)
     # kalau 256 itu 8 bit, kalau 16 bit 65535
 
-def switch_case(case):
-    global encoder_counts
-    if case == "maju":
-        case_maju()
-    elif case == "mundur":
-        case_mundur()
-    elif case == "kiri":
-        case_kiri()
-    elif case == "kanan":
-        case_kanan()
-    elif case == "cw":
-        case_cw()
-    elif case == "ccw":
-        case_ccw()
-    elif case == "d_kanan_fw":
-        case_d_kanan_fw()
-    elif case == "d_kiri_fw":
-        case_d_kiri_fw()
-    elif case == "d_kanan_bw":
-        case_d_kanan_bw()
-    elif case == "d_kiri_bw":
-        case_d_kiri_bw()
-    elif case == "pivotatas":
-        case_pivotatas()
-    elif case == "pivotkanan":
-        case_pivotkanan()
-    elif case == "init":
-        timer.init(mode=Timer.PERIODIC, period=500, callback=print_enc_callback)
-        encoder_counts = [0, 0, 0, 0]  # Reset encoder counts
-    elif case == "deinit":
-        timer.deinit()
-        encoder_counts = [0, 0, 0, 0]  # Reset encoder counts
-    else:
-        case_default()
-
 def case_maju():
     pwm_value = 30000  # Nilai PWM untuk menggerakkan motor maju
     drive_motor(0, 0, pwm_value)
@@ -128,101 +88,19 @@ def case_maju():
     drive_motor(3, 0, pwm_value)
 
 def case_mundur():
-    drive_motor(0, pwm_1_bwx, 0)
-    drive_motor(1, pwm_2_bwx, 0)
-    drive_motor(2, pwm_3_bwx, 0)
-    drive_motor(3, pwm_4_bwx, 0)
-
-def case_kiri():
-    drive_motor(0, pwm_1_bwx, 0)
-    drive_motor(1, 0, pwm_2_fwx)
-    drive_motor(2, 0, pwm_3_fwx)
-    drive_motor(3, pwm_4_bwx, 0)
-
-def case_kanan():
-    drive_motor(0, 0, pwm_1_fwx)
-    drive_motor(1, pwm_2_bwx, 0)
-    drive_motor(2, pwm_3_bwx, 0)
-    drive_motor(3, 0, pwm_4_fwx)
-
-def case_cw():
-    drive_motor(0, 0, pwm_1_fwx)
-    drive_motor(1, pwm_2_bwx, 0)
-    drive_motor(2, 0, pwm_3_fwx)
-    drive_motor(3, pwm_4_bwx, 0)
-
-def case_ccw():
-    drive_motor(0, pwm_1_bwx, 0)
-    drive_motor(1, 0, pwm_2_fwx)
-    drive_motor(2, pwm_3_bwx, 0)
-    drive_motor(3, 0, pwm_4_fwx)
-
-def case_d_kanan_fw():
-    drive_motor(0, 0, pwm_1_fwx)
-    drive_motor(1, 0, 0)
-    drive_motor(2, 0, 0)
-    drive_motor(3, 0, pwm_4_fwx)
-
-def case_d_kiri_fw():
-    drive_motor(0, 0, 0)
-    drive_motor(1, 0, pwm_2_fwx)
-    drive_motor(2, 0, pwm_3_fwx)
-    drive_motor(3, 0, 0)
-
-def case_d_kanan_bw():
-    drive_motor(0, 0, 0)
-    drive_motor(1, pwm_2_bwx, 0)
-    drive_motor(2, pwm_3_bwx, 0)
-    drive_motor(3, 0, 0)
-
-def case_d_kiri_bw():
-    drive_motor(0, pwm_1_bwx, 0)
-    drive_motor(1, 0, 0)
-    drive_motor(2, 0, 0)
-    drive_motor(3, pwm_4_bwx, 0)
-
-def case_pivotkanan():
-    drive_motor(0, 0, pwm_1_fwx)
-    drive_motor(1, 0, 0)
-    drive_motor(2, 0, pwm_3_fwx)
-    drive_motor(3, 0, 0)
-
-def case_pivotatas():
-    drive_motor(0, 0, pwm_1_fwx)
-    drive_motor(1, pwm_2_bwx, 0)
-    drive_motor(2, 0, 0)
-    drive_motor(3, 0, 0)
-
-def case_default():
-    stop_motors()
-    # print("Default case")
-
-def convert_8bit_to_16bit_pwm(pwm_8bit):
-    max_8bit_value = 255.00  # Maximum value for 8-bit PWM
-    max_16bit_value = 65535.00  # Maximum value for 16-bit PWM
-
-    const_pwm_1_fw = 1
-    const_pwm_1_bw = 1
-    const_pwm_2_fw = 1
-    const_pwm_2_bw = 1
-    const_pwm_3_fw = 1
-    const_pwm_3_bw = 1
-    const_pwm_4_fw = 1
-    const_pwm_4_bw = 1
-
-    pwm_1_fwx = int((pwm_8bit * max_16bit_value / max_8bit_value) * const_pwm_1_fw)
-    pwm_1_bwx = int((pwm_8bit * max_16bit_value / max_8bit_value) * const_pwm_1_bw)
-    pwm_2_fwx = int((pwm_8bit * max_16bit_value / max_8bit_value) * const_pwm_2_fw)
-    pwm_2_bwx = int((pwm_8bit * max_16bit_value / max_8bit_value) * const_pwm_2_bw)
-    pwm_3_fwx = int((pwm_8bit * max_16bit_value / max_8bit_value) * const_pwm_3_fw)
-    pwm_3_bwx = int((pwm_8bit * max_16bit_value / max_8bit_value) * const_pwm_3_bw)
-    pwm_4_fwx = int((pwm_8bit * max_16bit_value / max_8bit_value) * const_pwm_4_fw)
-    pwm_4_bwx = int((pwm_8bit * max_16bit_value / max_8bit_value) * const_pwm_4_bw)
-
-    return pwm_1_fwx, pwm_1_bwx, pwm_2_fwx, pwm_2_bwx, pwm_3_fwx, pwm_3_bwx, pwm_4_fwx, pwm_4_bwx
+    pwm_value = 30000  # Nilai PWM untuk menggerakkan motor mundur
+    drive_motor(0, pwm_value, 0)
+    drive_motor(1, pwm_value, 0)
+    drive_motor(2, pwm_value, 0)
+    drive_motor(3, pwm_value, 0)
 
 # Main program loop
 while True:
-    if poll_obj.poll(0):
-        case = sys.stdin.read().strip()
-        switch_case(case)
+    case_maju()
+    tahan_waktu(10000)  # Maju selama 10 detik
+    stop_motors()
+    tahan_waktu(1000)   # Berhenti sebentar selama 1 detik
+    case_mundur()
+    tahan_waktu(10000)  # Mundur selama 10 detik
+    stop_motors()
+    tahan_waktu(1000)   # Berhenti sebentar selama 1 detik
